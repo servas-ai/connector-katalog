@@ -1,0 +1,53 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>servas.ai Connector-Katalog</title><meta name="description" content="Öffentlicher Katalog aller servas.ai Datenconnectoren">
+<style>
+:root{--bg:#0b0d12;--card:#141821;--line:#232a36;--txt:#e7ebf2;--mut:#8b95a7;--acc:#6ee7b7;--red:#f87171;--blk:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:28px 20px 12px;max-width:1280px;margin:auto}h1{margin:0;font-size:28px;letter-spacing:-.02em}h1 b{color:var(--acc)}
+.sub{color:var(--mut);margin-top:4px}.count{margin-top:10px;font-size:14px}.count span{font-weight:700;color:var(--acc)}
+.bar{position:sticky;top:0;background:rgba(11,13,18,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:5}
+.bar>div{max-width:1280px;margin:auto;padding:12px 20px}
+input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.chip{padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;font-size:13px}
+.chip.on{background:var(--acc);color:#05110c;border-color:var(--acc)}
+main{max-width:1280px;margin:auto;padding:16px 20px 60px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.h{display:flex;gap:10px;align-items:center}.h img,.ph{width:36px;height:36px;border-radius:8px;background:#fff;object-fit:contain;flex:none}
+.ph{background:#232a36;display:grid;place-items:center;color:var(--mut);font-weight:700}
+.n{font-weight:650}.d{color:var(--mut);font-size:13px}.desc{font-size:13.5px;color:#c6cdd9;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.tags{display:flex;flex-wrap:wrap;gap:5px}.t{font-size:11.5px;padding:2px 8px;border-radius:6px;background:#1c2230;color:#aab3c3}
+.s-green{color:var(--acc)}.s-red{color:var(--red)}.s-blocked{color:var(--blk)}.st{font-weight:600;font-size:12px}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}a{color:var(--acc)}
+</style></head><body>
+<header><h1><b>servas</b>.ai Connector-Katalog</h1><div class="sub">Offene, getestete Datenconnectoren – ohne Login, robots.txt-konform.</div>
+<div class="count" id="count"></div></header>
+<div class="bar"><div><input id="q" placeholder="Suche: Name, Keyword (DE/EN), Land, Stadt, Kategorie …" autocomplete="off">
+<div class="chips" id="st"></div><div class="chips" id="cat"></div></div></div>
+<main id="list"></main><footer>© servas.ai · Linz · <span id="gen"></span></footer>
+<script>
+const SL={green:"grün",red:"rot",blocked:"gesperrt"};let D=[],fs=new Set(),fc=new Set();
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function hay(c){const g=c.geo||{};return [c.name,c.slug,c.description,c.category,c.domain,c.operator,(c.keywords||[]).join(" "),g.country,g.region,g.city,g.scope].join(" ").toLowerCase()}
+function chips(el,vals,set){el.innerHTML="";vals.forEach(([v,l])=>{const b=document.createElement("button");b.className="chip";b.textContent=l;b.onclick=()=>{set.has(v)?set.delete(v):set.add(v);b.classList.toggle("on");render()};el.appendChild(b)})}
+function card(c){const g=c.geo||{};const geo=[g.city,g.region,g.country].filter(Boolean).join(", ");
+return `<div class="c"><div class="h">${c.logo?`<img loading="lazy" src="${esc(c.logo)}" alt="">`:`<div class="ph">${esc(c.name[0]||"?")}</div>`}
+<div><div class="n">${esc(c.name)}</div><div class="d">${esc(c.domain||c.slug)}</div></div></div>
+<div class="desc">${esc(c.description)}</div><div class="tags">
+<span class="st s-${esc(c.status)}">● ${esc(SL[c.status]||c.status)}</span>
+${c.category?`<span class="t">${esc(c.category)}</span>`:""}${geo?`<span class="t">📍 ${esc(geo)}</span>`:""}
+${c.robots_status?`<span class="t">robots: ${esc(c.robots_status)}</span>`:""}${c.access?`<span class="t">${esc(c.access)}</span>`:""}
+${c.records?`<span class="t">${esc(c.records)} Datensätze</span>`:""}</div>
+${(c.kpis||[]).length?`<div class="tags">${c.kpis.map(k=>`<span class="t">KPI: ${esc(k)}</span>`).join("")}</div>`:""}
+${(c.keywords||[]).length?`<div class="tags">${c.keywords.slice(0,8).map(k=>`<span class="t">#${esc(k)}</span>`).join("")}</div>`:""}</div>`}
+function render(){const t=document.getElementById("q").value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+const r=D.connectors.filter(c=>(!fs.size||fs.has(c.status))&&(!fc.size||fc.has(c.category))&&t.every(w=>c._h.includes(w)));
+document.getElementById("count").innerHTML=`<span>${D.total}</span> Connectoren · <span>${D.green}</span> grün · ${r.length} angezeigt`;
+document.getElementById("list").innerHTML=r.slice(0,600).map(card).join("")}
+fetch("data.json").then(r=>r.json()).then(d=>{D=d;d.connectors.forEach(c=>c._h=hay(c));
+chips(document.getElementById("st"),[["green","● grün"],["red","● rot"],["blocked","● gesperrt"]],fs);
+const cats={};d.connectors.forEach(c=>c.category&&(cats[c.category]=(cats[c.category]||0)+1));
+chips(document.getElementById("cat"),Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,n])=>[k,`${k} (${n})`]),fc);
+document.getElementById("gen").textContent="Stand "+(d.generated_at||"").slice(0,10);
+const p=new URLSearchParams(location.search).get("q");if(p)document.getElementById("q").value=p;render()});
+document.getElementById("q").addEventListener("input",render);
+</script></body></html>
